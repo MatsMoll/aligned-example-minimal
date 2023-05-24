@@ -1,0 +1,70 @@
+version: '3'
+services:
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prom_data/:/prometheus/
+    command: --config.file=/prometheus/prometheus.yml
+  
+  psql_app_db:
+    image: postgres:latest
+    container_name: psql_app_db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - 5430:5432
+    volumes:
+      - ./data/taxi.sql:/docker-entrypoint-initdb.d/taxi.sql
+
+  redis:
+    image: 'redis/redis-stack-server:latest'
+    container_name: redis_aligned
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - 6378:6379
+  
+  aligned-ui:
+    image: 'matsmoll/aligned-ml-ui:latest'
+    container_name: aligned-ml-ui
+    command: python run.py serve --reference-file worker.py:store
+    environment:
+      - PUBLIC_FEATURE_STORE_URL=http://aligned-server:8000
+      - PROMETHEUS_URL=http://prometheus:9090
+      - PUBLIC_MONITORING_REFRESH_INTERVAL=15000
+      - NAMESPACE=aligned
+    ports:
+      - 8002:5173/
+    volumes:
+      - ./worker.py:/opt/app/worker.py
+
+  aligned-server:
+    image: 'matsmoll/aligned-ml:latest'
+    container_name: aligned-ml
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    command: serve --host 0.0.0.0
+    ports:
+      - 8001:8000
+    volumes:
+      - ./server.py:/opt/app/server.py
+    
+  aligned-worker:
+    image: 'matsmoll/aligned-ml:latest'
+    restart: always
+    container_name: aligned-ml-worker
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    command: serve-worker --prune-unused-features true
+    volumes:
+      - ./worker.py:/opt/app/worker.py
+    

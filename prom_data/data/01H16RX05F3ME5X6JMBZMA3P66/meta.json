@@ -1,0 +1,17 @@
+{
+	"ulid": "01H16RX05F3ME5X6JMBZMA3P66",
+	"minTime": 1684836000380,
+	"maxTime": 1684843200000,
+	"stats": {
+		"numSamples": 362778,
+		"numSeries": 1217,
+		"numChunks": 3647
+	},
+	"compaction": {
+		"level": 1,
+		"sources": [
+			"01H16RX05F3ME5X6JMBZMA3P66"
+		]
+	},
+	"version": 1
+}
